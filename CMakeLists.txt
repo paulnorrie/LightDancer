@@ -1,3 +1,19 @@
+# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
+if(WIN32)
+    set(USERHOME $ENV{USERPROFILE})
+else()
+    set(USERHOME $ENV{HOME})
+endif()
+set(sdkVersion 2.2.0)
+set(toolchainVersion 13_2_Rel1)
+set(picotoolVersion 2.2.0-a4)
+set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
+if (EXISTS ${picoVscode})
+    include(${picoVscode})
+endif()
+# ====================================================================================
+set(PICO_BOARD pico_w CACHE STRING "Board type")
+
 cmake_minimum_required(VERSION 3.30)
 set(CMAKE_CXX_STANDARD 17) # AUTOSAR C++14
 #set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,11 +41,20 @@ pico_sdk_init()
 # Application
 add_executable(LightDancer
     src/main.cpp
-    src/ws2811.cpp
+    src/leds/ws2811pio/ws2811pio.cpp
 )
 # assemble PIO program into a C header (must be done after sources specified (e.g. in either
 # add_executable or target_sources)
-pico_generate_pio_header(LightDancer ${PROJECT_SOURCE_DIR}/src/ws2811.pio)
+pico_generate_pio_header(LightDancer ${PROJECT_SOURCE_DIR}/src/leds/ws2811pio/ws2811.pio)
+
+# Enable stdio comms back to host for debugging
+pico_enable_stdio_usb(LightDancer 0)
+pico_enable_stdio_uart(LightDancer 1) # enabled for serial monitoring with Pico-Probe
+
+# Compiler options
+# -avoid exceptions and rtti for performance and size
+# -enable all and extra warnings
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti -Wall -Wextra")
 
 # Linker option to generate a map file for inspection (does not work cross-compiling on arm
 # "ld: unrecognised emulation mode: ap Supported emulations: armelf")

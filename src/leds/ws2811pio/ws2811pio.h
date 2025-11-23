@@ -4,23 +4,30 @@
 extern "C" {
 #include "hardware/pio.h"
 }
+#include "../leds.h"
 
 
-class WS2811 {
+/**
+ * @brief Driver for WS2811 LED using Raspberry Pi Pico Programmable I/O (PIO).
+ * 
+ * Raspberry Pi PIO does not run on a CPU core but on a separate state machine, keeping the CPU
+ * free for other tasks.  It is available on RP2040 and RP2350 microcontrollers.
+ */
+class WS2811Pio final {
     
 
     private:
 
     PIO pio_ = nullptr;
     uint sm_ = 0;
-    uint num_leds_ = 0;
     uint offset_ = 0;
+    
 
     public:
 
-    WS2811() = delete;
-    WS2811(const WS2811&) = delete;
-    ~WS2811();
+    WS2811Pio() = delete;
+    WS2811Pio(const WS2811Pio&) = delete;
+    ~WS2811Pio();
 
     /**
      * @brief Construct an instance of WS2811.  If an instance cannot be constructed, abort() 
@@ -30,7 +37,7 @@ class WS2811 {
      * @param [in] bps Transmission frequency in bits per second, typically 800,000 or 400,000.
      * @param [in] pin Number of the GPIO pin for data out.
      */
-    WS2811(uint num_leds, uint bps, uint8_t pin);
+    WS2811Pio(uint bps, uint8_t pin);
 
     /**
      * @brief Test LEDs work with alternating pattern of Red, Green, & Blue colours.
@@ -38,7 +45,7 @@ class WS2811 {
      * This blocks until data is written to the LED, upon which LEDs should be showing a 
      * steady pattern of alternating Red, Green, & Blue. 
      */
-    void test();
+    void test(size_t num_leds);
 };
 
 #endif

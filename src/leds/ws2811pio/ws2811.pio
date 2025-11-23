@@ -6,7 +6,7 @@
 .side_set 1 opt ; use 1 of the 5 bit delay bits for side-set to control 1 pin
 
 ; WS2811 operates at 400KHz (when VDD connected with SET pin) or 800KHz otherwise.
-; Timinig is not standard and datasheets vary but typically (confirm with your datasheet):
+; Timing is not standard and datasheets vary but typically (confirm with your datasheet):
 ; | Freq    | 0 bit           | 1 bit           | Tolerance | Time per bit | 
 ; |         | High   | Low    | High   | Low    |           |              |
 ; |---------|--------|--------|--------|--------|-----------|--------------|
@@ -34,6 +34,10 @@
 ; T1H = number of cycles high for 1 bit
 ; T0L = number of cycles low for 1 bit
 ;
+; After data transmission, the LEDs have not changed colour, the data is only in a register in the
+; WS2811. To signal the LEDs to use this data a RESET signal must be sent.
+; This is either 50us (@400KHz) or 25us (@800KHz), or for old WS2811 280us.
+;
 ; Default cycles for the timing in table above at 800KHz with ticks every 125ns/10 ticks per bit
 ; You can change these defaults in C by #define ws2811pio_T0H, etc.
 .define PUBLIC T0H 1    ; number of cycles to hold high for a '0' bit
@@ -48,7 +52,7 @@ next_bit:
  ; always entering this loop on a low so that a TX stall keeps the output low
  out x, 1       side 1  [T0H - 1]       ; get next bit and start both 0 and 1 high for Ta cycles
  mov pins, x            [T1H - T0H - 1] ; output to 0 or 1 for Tb cycles
- pull ifempty   side 0  [T1L - 1]       ; end on 0 for Tc cycles, stall if no more data
+ pull ifempty   side 0  [T1L - 1]       ; end on 0 for Tc cycles, stall if no more data (after 50us, this is RESET signal for LEDs to display)
 .wrap 
 
 ; 
@@ -63,17 +67,17 @@ static inline void ws2811pio_program_init(
     uint sm,        // State Machine number (0-4)
     uint offset, 
     uint pin,       // Pin # (0-31)
-    uint bps) {
+    uint bps,
+    bool rgbw) {
 
     pio_gpio_init(pio, pin);
-    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true); // SET instruction outputs on given pin
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true); // SET instruction drives output `pin`
     
-
     // configure state-machine
     pio_sm_config c = ws2811pio_program_get_default_config(offset);
-    sm_config_set_sideset_pins(&c, pin);    // side-set pins output on given pin
-    sm_config_set_out_pins(&c, 0, 1);        // OUT+MOV instructions output on given pin
-    sm_config_set_out_shift(&c, false, true, 24); // shift-left (MSB -> OSR first), autopull when empty
+    sm_config_set_sideset_pins(&c, pin);    // side-set writes to `pin`
+    sm_config_set_out_pins(&c, pin, 1);     // OUT+MOV instructions drives output on given pin
+    sm_config_set_out_shift(&c, false, true, rgbw ? 32 : 24); // shift-left (MSB -> OSR first), autopull when empty
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // use RX FIFO to increase TX FIFO size
 
     // PIO clock operates every subset of system clock to transmit at chosen bps
