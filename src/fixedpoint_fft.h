@@ -58,7 +58,7 @@ enum class WindowType {
  * sidelobe suppression but is more computationally expensive than the other WindowType variants.
  * 
  * Memory Usage (including input and output buffers):
- * | InputType | WindowType             | Memory Usage     |
+ * | InputType | WindowType             | Stack Usage      |
  * | OutputType|                        |                  |
  * |-----------|------------------------|------------------|
  * | int16_t   | Bartlett               | ~12N bytes       |
