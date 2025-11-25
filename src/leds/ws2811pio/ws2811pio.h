@@ -40,6 +40,13 @@ class WS2811Pio final {
     WS2811Pio(uint bps, uint8_t pin);
 
     /**
+     * @brief Send a frame to the LED strip to display.  This may block until the frame is completely
+     * sent or it may return immediately (e.g. if the driver uses DMA).  If it returns immediately,
+     * a subsequent call to `send()` will block until the prior frame is completely sent.
+     */
+    void send(const Frame& frame);
+
+    /**
      * @brief Test LEDs work with alternating pattern of Red, Green, & Blue colours.
      * 
      * This blocks until data is written to the LED, upon which LEDs should be showing a 

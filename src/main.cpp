@@ -1,11 +1,15 @@
 #include <cstdio>
 
+#include "etl/random.h"
+
 extern "C" {
 #include "pico/stdlib.h"
 }
 #include "leds/leds.h"
+#include "leds/effect.h"
 
 #include "leds/ws2811pio/ws2811pio.h"
+
 
 void loop() {
     
@@ -35,16 +39,54 @@ void loop() {
 
 
 
+
+
 int main() {
     
     // Pico init
     stdio_init_all();
-    
+
     // LED init
     uint8_t gpio_pin = 2;
     uint bps = 400'000;
     WS2811Pio leds(bps, gpio_pin);
     printf("LightDancer is up.\n");
+    // loop
+    //      get effect
+    //      refresh_rate = // how many times we can send frames (incl reset) every second = bps / (num_leds * bit_depth) = 800000 / (760 * 5 * 24) = 8.77 fps we can send fastest
+    //      max_frame_rate = refresh_rate // but we may want slower?
+    //      
+    //      max_frame_rate = min(refresh_rate, target_frame_rate) // if target_frame_rate > refresh_rate then we are limited by refresh_rate and can't do anything about it
+    //         but that doesn't mean we can send every frame at max_frame_rate if building the frame is slower, which means we could skip frames or just slow it down (with beat tracking looks odd)
+    //      max_frame_time = 1 / max_frame_rate; //1 fps = 1000ms, 2fps = 500ms, 3fps = 333ms, 8.77fps = 114ms, 17fps = 57ms
+    //      
+    //      loop
+    //         if elapsed_time >= max_frame_time
+    //      effect.draw_frame(frame)  // what about draw on beat and pass freqs?
+    //      leds.send(frame)
+    //         - wait until any DMA is complete (IRQ handler sends RESET and flags done)
+    //         - setup DMA to read from frame
+    //         - start DMA and return
+    //
+    //         wait until next frame time
+    //      
+    //      effects that use beat should get the beat passed to them to adjust their drawing accordingly
+    std::string effectNames[] = {"laser", "blink"};
+    
+    etl::random_xorshift rng;
+    auto i = rng.range(0, 1);
+
+    EffectVariant effect = getEffect(effectNames[i], bps, 24, 760 * 5);
+    Frame frame(760 * 5);
+
+    etl::visit([&leds, &frame](auto& obj) {
+        etl::array<unsigned short, 1> fft_mags {1};
+        DrawInfo info {(unsigned short)100, fft_mags};
+        obj.draw_frame(frame, info);
+        leds.send(frame);
+    }, effect);
+
+
     while (1) {
         leds.test(760 * 5);
     }

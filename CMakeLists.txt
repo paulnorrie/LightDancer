@@ -12,7 +12,6 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico_w CACHE STRING "Board type")
 
 cmake_minimum_required(VERSION 3.30)
 set(CMAKE_CXX_STANDARD 17) # AUTOSAR C++14
@@ -22,6 +21,10 @@ set(CMAKE_CXX_STANDARD 17) # AUTOSAR C++14
 # -----------------------------------------------------
 # Pico SDK
 # -----------------------------------------------------
+
+# Pico board type
+set(PICO_BOARD pico_w CACHE STRING "Board type")
+
 # initialize pico-sdk from GIT
 # (note this can come from environment, CMake cache etc)
 set(PICO_SDK_FETCH_FROM_GIT on)
@@ -37,12 +40,16 @@ pico_sdk_init()
 # -----------------------------------------------------
 
 
-
-# Application
+# Application and sources
 add_executable(LightDancer
     src/main.cpp
     src/leds/ws2811pio/ws2811pio.cpp
 )
+
+# ------------------------------------------------------
+# Pico specific build settings
+# ------------------------------------------------------
+
 # assemble PIO program into a C header (must be done after sources specified (e.g. in either
 # add_executable or target_sources)
 pico_generate_pio_header(LightDancer ${PROJECT_SOURCE_DIR}/src/leds/ws2811pio/ws2811.pio)
@@ -51,17 +58,31 @@ pico_generate_pio_header(LightDancer ${PROJECT_SOURCE_DIR}/src/leds/ws2811pio/ws
 pico_enable_stdio_usb(LightDancer 0)
 pico_enable_stdio_uart(LightDancer 1) # enabled for serial monitoring with Pico-Probe
 
+target_link_libraries(LightDancer pico_stdlib hardware_pio)
+
+
+# ------------------------------------------------------
 # Compiler options
+# ------------------------------------------------------
+
 # -avoid exceptions and rtti for performance and size
 # -enable all and extra warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti -Wall -Wextra")
 
+# -enable stack usage reporting at compile-time (*.su file generated for each source file)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-usage")
+
+# - debug builds use stack guards causing hard-fault on stack overflow
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(PICO_USE_STACK_GUARDS=1)
+endif()
+
 # Linker option to generate a map file for inspection (does not work cross-compiling on arm
 # "ld: unrecognised emulation mode: ap Supported emulations: armelf")
 #target_link_options(LightDancer PUBLIC
-#   "-Wl,-map,/Users/nozza/lightdancer/map.map"
+#  "-Wl,-map,/Users/nozza/lightdancer/lightdancer.map"
 #)
-target_link_libraries(LightDancer pico_stdlib hardware_pio)
+
 
 # Dependancies
 include(FetchContent)
