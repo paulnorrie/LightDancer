@@ -4,8 +4,9 @@
 extern "C" {
 #include "hardware/pio.h"
 }
-#include "../leds.h"
+#include "../../draw.h"
 
+#include <cstdint>
 
 /**
  * @brief Driver for WS2811 LED using Raspberry Pi Pico Programmable I/O (PIO).
