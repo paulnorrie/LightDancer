@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <array>
 #include <type_traits>
-
+#include "etl/array.h"
 
 /**
  * The Window Type. 

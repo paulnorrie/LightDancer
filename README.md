@@ -8,10 +8,21 @@ Make LED strips dance to music on a Raspberry Pi Pico (RP2040).
 
 ## Software Pre-requisites
 
-`cmake -B build --DPICO_BOARD=pico_w` (change board as needed)
-`cmake --build build`
+
 
 ## Command-line
+
+### Building Pico application
+`mkdir build-pico`
+`cmake -B build-pico --DPICO_BOARD=pico_w` (change board as needed)
+`cmake --build .` to run the build
+
+### Building Tests
+Tests run on the host architecture, not the Pico.
+`mkdir build-tests`
+`cmake -B build-tests --DBUILD_TESTS=ON`  to configure the build
+`cmake --build .` to run the build
+`ctest` to run the tests
 
 ## With VS Code
 Add Raspberry Pi Pico extension
