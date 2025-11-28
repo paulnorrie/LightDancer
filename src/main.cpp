@@ -5,9 +5,8 @@
 extern "C" {
 #include "pico/stdlib.h"
 }
-#include "leds/leds.h"
-#include "leds/effect.h"
-
+#include "draw.h"
+#include "effects/effect_factory.h"
 #include "leds/ws2811pio/ws2811pio.h"
 
 
@@ -71,20 +70,21 @@ int main() {
     //         wait until next frame time
     //      
     //      effects that use beat should get the beat passed to them to adjust their drawing accordingly
-    std::string effectNames[] = {"laser", "blink"};
     
     etl::random_xorshift rng;
     auto i = rng.range(0, 1);
 
-    EffectVariant effect = getEffect(effectNames[i], bps, 24, 760 * 5);
     Frame frame(760 * 5);
+    EffectFactory effect_factory;
+    effect_factory.set_effect(i);
 
-    etl::visit([&leds, &frame](auto& obj) {
-        etl::array<unsigned short, 1> fft_mags {1};
-        DrawInfo info {(unsigned short)100, fft_mags};
-        obj.draw_frame(frame, info);
-        leds.send(frame);
-    }, effect);
+    etl::array<unsigned short, 1> fft_mags {1};
+    DrawInfo<unsigned short, 1> info {(unsigned short)100, fft_mags};
+    effect_factory.draw_frame(frame, info);
+    // etl::visit([&frame, &info](auto& obj) {
+    //     obj.draw_frame(frame, info);
+    // }, effect);
+    // leds.send(frame);
 
 
     while (1) {
