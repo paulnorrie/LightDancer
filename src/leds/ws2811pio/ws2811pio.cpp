@@ -195,8 +195,13 @@ void WS2811Pio::test(size_t num_leds) {
               pio_sm_put_blocking(pio_, sm_, frame.data[i].as_RGB());  
         }
         
-        busy_wait_us(50); //less than 800us LEDs don't latch at 400kBs during debugging
-                          //less than 500us LEDs don't latch at 800kBs during debugging
+        #ifndef NDEBUG
+            //less than 800us LEDs don't latch at 400kBs during debugging
+            //less than 500us LEDs don't latch at 800kBs during debugging
+            busy_wait_us(800); 
+        #else
+            busy_wait_us(50); 
+        #endif
         
     }
     
