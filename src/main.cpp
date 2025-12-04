@@ -47,7 +47,7 @@ int main() {
 
     // LED init
     uint8_t gpio_pin = 2;
-    uint bps = 400'000;
+    uint bps = 800'000;
     WS2811Pio leds(bps, gpio_pin);
     printf("LightDancer is up.\n");
     // loop
@@ -71,24 +71,22 @@ int main() {
     //      
     //      effects that use beat should get the beat passed to them to adjust their drawing accordingly
     
-    etl::random_xorshift rng;
-    auto i = rng.range(0, 1);
+    //etl::random_xorshift rng;
+    //auto i = rng.range(0, 1);
 
-    Frame frame(760 * 5);
+    Frame frame(100);
     EffectFactory effect_factory;
-    effect_factory.set_effect(i);
+    effect_factory.set_effect(0); // LASER
 
     etl::array<unsigned short, 1> fft_mags {1};
     DrawInfo<unsigned short, 1> info {(unsigned short)100, fft_mags};
-    effect_factory.draw_frame(frame, info);
-    // etl::visit([&frame, &info](auto& obj) {
-    //     obj.draw_frame(frame, info);
-    // }, effect);
-    // leds.send(frame);
-
-
+    
     while (1) {
-        leds.test(760 * 5);
+        leds.test(100);
+
+        effect_factory.draw_frame(frame, info);
+        printf("Frame drawn");
+        //leds.send(frame);
     }
 
     return 0;

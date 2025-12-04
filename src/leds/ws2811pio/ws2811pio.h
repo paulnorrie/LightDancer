@@ -13,16 +13,32 @@ extern "C" {
  * 
  * Raspberry Pi PIO does not run on a CPU core but on a separate state machine, keeping the CPU
  * free for other tasks.  It is available on RP2040 and RP2350 microcontrollers.
+ * 
+ * This class uses DMA to transfer data to the PIO state machine, hence `send_frame(Frame&, DrawInfo&)`
+ * returns before the frame is sent.
+ * 
+ * This class is designed to have only one instance, because it registers an IRQ handler for when
+ * DMA transfers are complete.  
+ * 
  */
 class WS2811Pio final {
     
 
     private:
 
-    PIO pio_ = nullptr;
-    uint sm_ = 0;
-    uint offset_ = 0;
-    
+    static inline WS2811Pio *instance_ = nullptr;   // singleton instance
+    PIO pio_ = nullptr;             // PIO in use
+    uint sm_ = 0;                   // State Machine in use
+    uint offset_ = 0;               // Offset in SM, pio code starts at
+    uint dma_chan_;                 // DMA channel for data transfer from RAM to PIO State Machine
+    int num_words_to_reset_;        // No o 32-bit words required to send RESET signal
+
+    static void dma_irq_handler_c_wrapper(void); // IRQ handler to be registered with Pico SDK
+    void dma_irq_handler();                      // IRQ handler that can use member variables
+    void send_reset_signal();                    
+    void install_pio_and_run(uint8_t pin, uint bps);
+    void setup_dma();
+
 
     public:
 
@@ -39,6 +55,8 @@ class WS2811Pio final {
      * @param [in] pin Number of the GPIO pin for data out.
      */
     WS2811Pio(uint bps, uint8_t pin);
+
+    
 
     /**
      * @brief Send a frame to the LED strip to display.  This may block until the frame is completely

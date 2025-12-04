@@ -70,7 +70,7 @@ else()
     pico_enable_stdio_usb(LightDancer 0)
     pico_enable_stdio_uart(LightDancer 1) # enabled for serial monitoring with Pico-Probe
 
-    target_link_libraries(LightDancer pico_stdlib hardware_pio)
+    target_link_libraries(LightDancer pico_stdlib hardware_pio hardware_dma hardware_irq)
 
 
     # ------------------------------------------------------

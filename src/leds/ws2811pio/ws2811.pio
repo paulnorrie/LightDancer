@@ -45,14 +45,17 @@
 .define PUBLIC T1H 4    ; number of cycles to hold high for a '1' bit
 .define PUBLIC T1L 1    ; number of cycles to hold low for a '1' bit
 
-  pull      side 0      ; stall until data but always go low
+  pull      side 0      ; TX FIFO -> OSR, stall until data available and always go low
 
 .wrap_target
 next_bit:
  ; always entering this loop on a low so that a TX stall keeps the output low
- out x, 1       side 1  [T0H - 1]       ; get next bit and start both 0 and 1 high for Ta cycles
+ out x, 1       side 1  [T0H - 1]       ; next bit OSR -> x reg, start both 0 and 1 high for Ta cycles
  mov pins, x            [T1H - T0H - 1] ; output to 0 or 1 for Tb cycles
- pull ifempty   side 0  [T1L - 1]       ; end on 0 for Tc cycles, stall if no more data (after 50us, this is RESET signal for LEDs to display)
+ pull ifempty   side 0  [T1L - 1]       ; end on 0 for Tc cycles, 
+                                        ; get next 32-bit word into OSR if we 
+                                        ; have emptied OSR 
+                                        ; stall if no more words in TX FIFO (may trigger a RESET after 50us)
 .wrap 
 
 ; 
@@ -77,7 +80,8 @@ static inline void ws2811pio_program_init(
     pio_sm_config c = ws2811pio_program_get_default_config(offset);
     sm_config_set_sideset_pins(&c, pin);    // side-set writes to `pin`
     sm_config_set_out_pins(&c, pin, 1);     // OUT+MOV instructions drives output on given pin
-    sm_config_set_out_shift(&c, false, true, rgbw ? 32 : 24); // shift-left (MSB -> OSR first), autopull when empty
+    sm_config_set_out_shift(&c, false, true, rgbw ? 32 : 24); // shift-left (MSB -> OSR first), autopull 
+    //sm_config_set_out_shift(&c, false, true, 32); // shift-left (MSB -> OSR first), autopull when empty OSR
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // use RX FIFO to increase TX FIFO size
 
     // PIO clock operates every subset of system clock to transmit at chosen bps
